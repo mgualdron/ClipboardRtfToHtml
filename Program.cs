@@ -26,6 +26,7 @@ namespace ClipboardRtfToHtml
 		// https://www.freeclipboardviewer.com/
 
 		private static readonly char Space = '\u00a0'; // Unicode no-break space
+		//private static readonly char Space = '\u0020'; // Unicode space
 
 
 		static void Main(string[] args)
@@ -35,20 +36,20 @@ namespace ClipboardRtfToHtml
 
 		private void Run(string[] args)
 		{
-			Console.WriteLine(new string('-', 90));
-			DumpClipboard();
+			//Console.WriteLine(new string('-', 90));
 
 			if (args.Contains("--dump"))
 			{
+			    DumpClipboard();
 				return;
 			}
 
 			PrepareClipboard();
 
-			Console.WriteLine();
-			ConsoleWriteLine("RESULT " + new string('-', 80), ConsoleColor.Green);
+			//Console.WriteLine();
+			//ConsoleWriteLine("RESULT " + new string('-', 80), ConsoleColor.Green);
 
-			DumpClipboard(true);
+			//DumpClipboard(true);
 		}
 
 		private void DumpClipboard(bool fancy = false)
@@ -85,8 +86,8 @@ namespace ClipboardRtfToHtml
 			thread.Start();
 			thread.Join();
 
-			ConsoleWriteLine(new string('-', 90), ConsoleColor.DarkGray);
-			Console.WriteLine();
+			//ConsoleWriteLine(new string('-', 90), ConsoleColor.DarkGray);
+			//Console.WriteLine();
 		}
 
 		private void DumpContent(
@@ -106,18 +107,20 @@ namespace ClipboardRtfToHtml
 			if (fancy)
 			{
 				content = XElement.Parse(content).ToString(SaveOptions.None);
+                ConsoleWrite($"{title}: ({format.ToString()}) [", ConsoleColor.Yellow);
+
+                if (preamble != null)
+                {
+                    ConsoleWrite(preamble, ConsoleColor.DarkGray);
+                }
+                ConsoleWrite(content, ConsoleColor.DarkGray);
+                ConsoleWriteLine("]", ConsoleColor.DarkYellow);
 			}
+            else {
+                ConsoleWrite(content, ConsoleColor.Gray);
+            }
 
-			ConsoleWrite($"{title}: ({format.ToString()}) [", ConsoleColor.Yellow);
-
-			if (preamble != null)
-			{
-				ConsoleWrite(preamble, ConsoleColor.DarkGray);
-			}
-
-			ConsoleWrite(content, ConsoleColor.DarkGray);
-			ConsoleWriteLine("]", ConsoleColor.DarkYellow);
-			Console.WriteLine();
+			//Console.WriteLine();
 		}
 
 
@@ -132,8 +135,9 @@ namespace ClipboardRtfToHtml
 						ConvertXamlToHtml(
 							ConvertRtfToXaml(Clipboard.GetText(TextDataFormat.Rtf))));
 
-					RebuildClipboard(text);
-					ConsoleWriteLine("... Rtf -> Html", ConsoleColor.Red);
+					//RebuildClipboard(text);
+					//ConsoleWriteLine("... Rtf -> Html", ConsoleColor.Red);
+					DumpContent(text, TextDataFormat.Html);
 				}
 				else if (Clipboard.ContainsText(TextDataFormat.Xaml))
 				{
@@ -141,13 +145,14 @@ namespace ClipboardRtfToHtml
 						ConvertXamlToHtml(
 							Clipboard.GetText(TextDataFormat.Xaml)));
 
-					RebuildClipboard(text);
-					ConsoleWriteLine("... Xaml -> Html", ConsoleColor.Red);
+					//RebuildClipboard(text);
+					//ConsoleWriteLine("... Xaml -> Html", ConsoleColor.Red);
+					DumpContent(text, TextDataFormat.Html);
 				}
 				else
 				{
 					var formats = string.Join(",", Clipboard.GetDataObject().GetFormats(false));
-					ConsoleWriteLine($"... saving {formats} content", ConsoleColor.Green);
+					//ConsoleWriteLine($"... saving {formats} content", ConsoleColor.Green);
 				}
 			});
 
@@ -229,16 +234,16 @@ namespace ClipboardRtfToHtml
 				return string.Empty;
 			}
 
-			ConsoleWrite("xaml=[", ConsoleColor.Cyan);
-			ConsoleWrite(xaml, ConsoleColor.DarkCyan);
-			ConsoleWriteLine("]", ConsoleColor.Cyan);
-			Console.WriteLine();
+			//ConsoleWrite("xaml=[", ConsoleColor.Cyan);
+			//ConsoleWrite(xaml, ConsoleColor.DarkCyan);
+			//ConsoleWriteLine("]", ConsoleColor.Cyan);
+			//Console.WriteLine();
 
 			var root = XElement.Parse(xaml);
-			ConsoleWrite("root=[", ConsoleColor.Blue);
-			ConsoleWrite(root.ToString(SaveOptions.None), ConsoleColor.DarkBlue);
-			ConsoleWriteLine("]", ConsoleColor.Blue);
-			Console.WriteLine();
+			//ConsoleWrite("root=[", ConsoleColor.Blue);
+			//ConsoleWrite(root.ToString(SaveOptions.None), ConsoleColor.DarkBlue);
+			//ConsoleWriteLine("]", ConsoleColor.Blue);
+			//Console.WriteLine();
 
 
 			var builder = new StringBuilder(); 
@@ -286,7 +291,7 @@ namespace ClipboardRtfToHtml
 							var n = TranslateElementName(reader.Name, reader);
 							writer.WriteStartElement(n);
 
-							Report("element", reader.Name, n, reader.HasAttributes);
+							//Report("element", reader.Name, n, reader.HasAttributes);
 
 							if (reader.HasAttributes)
 							{
@@ -299,51 +304,51 @@ namespace ClipboardRtfToHtml
 						{
 							var n = TranslateElementName(reader.Name);
 							writer.WriteEndElement();
-							Report("endelement", reader.Name, n);
+							//Report("endelement", reader.Name, n);
 						}
 						break;
 
 					case XmlNodeType.CDATA:
 						{
-							var t = Untabify(reader.Value);
+							var t = UntabifyFull(reader.Value);
 							writer.WriteCData(t);
-							Report("cdata", t);
+							//Report("cdata", t);
 						}
 						break;
 
 					case XmlNodeType.Text:
 						{
-							var t = Untabify(reader.Value);
+							var t = UntabifyFull(reader.Value);
 							writer.WriteValue(t);
-							Report("text", t);
+							//Report("text", t);
 						}
 						break;
 
 					case XmlNodeType.SignificantWhitespace:
 						{
-							var t = Untabify(reader.Value);
+							var t = UntabifyFull(reader.Value);
 							writer.WriteValue(t);
-							Report("whitespace!", t);
+							//Report("whitespace!", t);
 						}
 						break;
 
 					case XmlNodeType.Whitespace:
 						if (reader.XmlSpace == XmlSpace.Preserve)
 						{
-							var t = Untabify(reader.Value);
+							var t = UntabifyFull(reader.Value);
 							writer.WriteValue(t);
-							Report("whitespace", t);
+							//Report("whitespace", t);
 						}
 						break;
 
 					default:
 						// ignore
-						Report("**", $"'{reader.NodeType}'");
+						//Report("**", $"'{reader.NodeType}'");
 						break;
 				}
 			}
 
-			Console.WriteLine();
+			//Console.WriteLine();
 		}
 
 		private void Report(string title, string tag1, string tag2 = null, bool hasAttributes = false)
@@ -407,7 +412,48 @@ namespace ClipboardRtfToHtml
 
 			var t1 = text.Replace(' ', '.').Replace('\t', '_');
 			var t2 = builder.ToString().Replace(Space, '·');
-			ConsoleWriteLine($"... untabified [{t1}] to [{t2}]", ConsoleColor.DarkGray);
+			//ConsoleWriteLine($"... untabified [{t1}] to [{t2}]", ConsoleColor.DarkGray);
+
+			return builder.ToString();
+		}
+
+
+		private string UntabifyFull(string text)
+		{
+			if (text == null)
+				return string.Empty;
+
+			if (text.Length == 0)
+				return text;
+
+			var builder = new StringBuilder();
+
+			int i = 0;
+
+			while (i < text.Length)
+			{
+				if (text[i] == ' ')
+				{
+					builder.Append(Space);
+				}
+				else if (text[i] == '\t')
+				{
+					do
+					{
+						builder.Append(Space);
+					}
+					while (builder.Length % 4 != 0);
+				}
+                else {
+				    builder.Append(text[i]);
+                }
+
+				i++;
+			}
+
+			var t1 = text.Replace(' ', '.').Replace('\t', '_');
+			var t2 = builder.ToString().Replace(Space, '·');
+			//ConsoleWriteLine($"... untabified [{t1}] to [{t2}]", ConsoleColor.DarkGray);
 
 			return builder.ToString();
 		}
@@ -528,7 +574,7 @@ namespace ClipboardRtfToHtml
 						break;
 
 					case "FontSize":
-						styles.Append($"font-size:{ConvertSize(reader.Value, "pt")};");
+						styles.Append($"font-size:{ConvertSizeMinus(reader.Value, 4, "pt")};");
 						break;
 
 					case "Foreground":
@@ -648,6 +694,38 @@ namespace ClipboardRtfToHtml
 		}
 
 
+		private string ConvertSizeMinus(string size, double minus, string units = null)
+		{
+			var parts = size.Split(',');
+
+			for (int i = 0; i < parts.Length; i++)
+			{
+				if (double.TryParse(parts[i], out var value))
+				{
+					parts[i] = (Math.Ceiling(value) - minus).ToString();
+				}
+				else
+				{
+					parts[i] = "0";
+				}
+			}
+
+			var builder = new StringBuilder();
+			for (int i = 0; i < parts.Length; i++)
+			{
+				builder.Append(parts[i]);
+				builder.Append(units);
+
+				if (i < parts.Length - 1)
+				{
+					builder.Append(" ");
+				}
+			}
+
+			return builder.ToString();
+		}
+
+
 		public string AddHtmlPreamble(string html)
 		{
 			/*
@@ -706,6 +784,7 @@ namespace ClipboardRtfToHtml
 		internal static void ConsoleWrite(string text, ConsoleColor color)
 		{
 			var save = Console.ForegroundColor;
+            Console.OutputEncoding = Encoding.UTF8;
 			Console.ForegroundColor = color;
 			Console.Write(text);
 			Console.ForegroundColor = save;
@@ -714,6 +793,7 @@ namespace ClipboardRtfToHtml
 		internal static void ConsoleWriteLine(string text, ConsoleColor color)
 		{
 			var save = Console.ForegroundColor;
+            Console.OutputEncoding = Encoding.UTF8;
 			Console.ForegroundColor = color;
 			Console.WriteLine(text);
 			Console.ForegroundColor = save;
