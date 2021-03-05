@@ -26,8 +26,6 @@ namespace ClipboardRtfToHtml
 		// https://www.freeclipboardviewer.com/
 
 		private static readonly char Space = '\u00a0'; // Unicode no-break space
-		//private static readonly char Space = '\u0020'; // Unicode space
-
 
 		static void Main(string[] args)
 		{
@@ -281,8 +279,11 @@ namespace ClipboardRtfToHtml
 
 		private void ConvertXaml(XmlReader reader, XmlTextWriter writer)
 		{
+			var empty_par = false;
+
 			while (reader.Read())
 			{
+
 				switch (reader.NodeType)
 				{
 					case XmlNodeType.Element:
@@ -292,6 +293,14 @@ namespace ClipboardRtfToHtml
 							writer.WriteStartElement(n);
 
 							//Report("element", reader.Name, n, reader.HasAttributes);
+
+							// Detect empty Paragraphs:
+							if (string.Equals(reader.Name, "Paragraph")) {
+								empty_par = true;
+							}
+							else {
+								empty_par = false;
+							}
 
 							if (reader.HasAttributes)
 							{
@@ -303,8 +312,17 @@ namespace ClipboardRtfToHtml
 					case XmlNodeType.EndElement:
 						{
 							var n = TranslateElementName(reader.Name);
+							// Append a space to an empty Paragraph:
+							if (string.Equals(reader.Name, "Paragraph") && empty_par ) {
+								var t = UntabifyFull(' '.ToString());
+								writer.WriteValue(t);
+								//Report("end_empty>", reader.Name, n);
+							}
+							//else {
+								//Report("end_full->", reader.Name, n);
+							//}
+							empty_par = false;
 							writer.WriteEndElement();
-							//Report("endelement", reader.Name, n);
 						}
 						break;
 
@@ -313,6 +331,7 @@ namespace ClipboardRtfToHtml
 							var t = UntabifyFull(reader.Value);
 							writer.WriteCData(t);
 							//Report("cdata", t);
+							empty_par = false;
 						}
 						break;
 
@@ -321,6 +340,7 @@ namespace ClipboardRtfToHtml
 							var t = UntabifyFull(reader.Value);
 							writer.WriteValue(t);
 							//Report("text", t);
+							empty_par = false;
 						}
 						break;
 
@@ -329,6 +349,7 @@ namespace ClipboardRtfToHtml
 							var t = UntabifyFull(reader.Value);
 							writer.WriteValue(t);
 							//Report("whitespace!", t);
+							empty_par = false;
 						}
 						break;
 
@@ -338,12 +359,14 @@ namespace ClipboardRtfToHtml
 							var t = UntabifyFull(reader.Value);
 							writer.WriteValue(t);
 							//Report("whitespace", t);
+							empty_par = false;
 						}
 						break;
 
 					default:
 						// ignore
 						//Report("**", $"'{reader.NodeType}'");
+						empty_par = false;
 						break;
 				}
 			}
@@ -784,7 +807,7 @@ namespace ClipboardRtfToHtml
 		internal static void ConsoleWrite(string text, ConsoleColor color)
 		{
 			var save = Console.ForegroundColor;
-            Console.OutputEncoding = Encoding.UTF8;
+			Console.OutputEncoding = Encoding.UTF8;
 			Console.ForegroundColor = color;
 			Console.Write(text);
 			Console.ForegroundColor = save;
@@ -793,7 +816,7 @@ namespace ClipboardRtfToHtml
 		internal static void ConsoleWriteLine(string text, ConsoleColor color)
 		{
 			var save = Console.ForegroundColor;
-            Console.OutputEncoding = Encoding.UTF8;
+			Console.OutputEncoding = Encoding.UTF8;
 			Console.ForegroundColor = color;
 			Console.WriteLine(text);
 			Console.ForegroundColor = save;
