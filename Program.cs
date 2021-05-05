@@ -25,7 +25,8 @@ namespace ClipboardRtfToHtml
 	{
 		// https://www.freeclipboardviewer.com/
 
-		private static readonly char Space = '\u00a0'; // Unicode no-break space
+		private static readonly char NbSpace = '\u00a0'; // Unicode no-break space
+		private static readonly char Space   = '\u0020'; // Unicode space
 
 		static void Main(string[] args)
 		{
@@ -314,7 +315,7 @@ namespace ClipboardRtfToHtml
 							var n = TranslateElementName(reader.Name);
 							// Append a space to an empty Paragraph:
 							if (string.Equals(reader.Name, "Paragraph") && empty_par ) {
-								var t = UntabifyFull(' '.ToString());
+								var t = UntabifyNb(' '.ToString());
 								writer.WriteValue(t);
 								//Report("end_empty>", reader.Name, n);
 							}
@@ -328,7 +329,7 @@ namespace ClipboardRtfToHtml
 
 					case XmlNodeType.CDATA:
 						{
-							var t = UntabifyFull(reader.Value);
+							var t = Untabify(reader.Value);
 							writer.WriteCData(t);
 							//Report("cdata", t);
 							empty_par = false;
@@ -337,7 +338,7 @@ namespace ClipboardRtfToHtml
 
 					case XmlNodeType.Text:
 						{
-							var t = UntabifyFull(reader.Value);
+							var t = Untabify(reader.Value);
 							writer.WriteValue(t);
 							//Report("text", t);
 							empty_par = false;
@@ -346,7 +347,7 @@ namespace ClipboardRtfToHtml
 
 					case XmlNodeType.SignificantWhitespace:
 						{
-							var t = UntabifyFull(reader.Value);
+							var t = Untabify(reader.Value);
 							writer.WriteValue(t);
 							//Report("whitespace!", t);
 							empty_par = false;
@@ -356,7 +357,7 @@ namespace ClipboardRtfToHtml
 					case XmlNodeType.Whitespace:
 						if (reader.XmlSpace == XmlSpace.Preserve)
 						{
-							var t = UntabifyFull(reader.Value);
+							var t = Untabify(reader.Value);
 							writer.WriteValue(t);
 							//Report("whitespace", t);
 							empty_par = false;
@@ -433,8 +434,52 @@ namespace ClipboardRtfToHtml
 				i++;
 			}
 
-			var t1 = text.Replace(' ', '.').Replace('\t', '_');
-			var t2 = builder.ToString().Replace(Space, '·');
+			//var t1 = text.Replace(' ', '.').Replace('\t', '_');
+			//var t2 = builder.ToString().Replace(Space, '·');
+			//ConsoleWriteLine($"... untabified [{t1}] to [{t2}]", ConsoleColor.DarkGray);
+
+			return builder.ToString();
+		}
+
+
+		private string UntabifyNb(string text)
+		{
+			if (text == null)
+				return string.Empty;
+
+			if (text.Length == 0 || !char.IsWhiteSpace(text[0]))
+				return text;
+
+			var builder = new StringBuilder();
+
+			int i = 0;
+
+			while ((i < text.Length) && (text[i] == ' ' || text[i] == '\t'))
+			{
+				if (text[i] == ' ')
+				{
+					builder.Append(NbSpace);
+				}
+				else if (text[i] == '\t')
+				{
+					do
+					{
+						builder.Append(NbSpace);
+					}
+					while (builder.Length % 4 != 0);
+				}
+
+				i++;
+			}
+
+			while (i < text.Length)
+			{
+				builder.Append(text[i]);
+				i++;
+			}
+
+			//var t1 = text.Replace(' ', '.').Replace('\t', '_');
+			//var t2 = builder.ToString().Replace(NbSpace, '·');
 			//ConsoleWriteLine($"... untabified [{t1}] to [{t2}]", ConsoleColor.DarkGray);
 
 			return builder.ToString();
@@ -457,13 +502,13 @@ namespace ClipboardRtfToHtml
 			{
 				if (text[i] == ' ')
 				{
-					builder.Append(Space);
+					builder.Append(NbSpace);
 				}
 				else if (text[i] == '\t')
 				{
 					do
 					{
-						builder.Append(Space);
+						builder.Append(NbSpace);
 					}
 					while (builder.Length % 4 != 0);
 				}
@@ -474,8 +519,8 @@ namespace ClipboardRtfToHtml
 				i++;
 			}
 
-			var t1 = text.Replace(' ', '.').Replace('\t', '_');
-			var t2 = builder.ToString().Replace(Space, '·');
+			//var t1 = text.Replace(' ', '.').Replace('\t', '_');
+			//var t2 = builder.ToString().Replace(NbSpace, '·');
 			//ConsoleWriteLine($"... untabified [{t1}] to [{t2}]", ConsoleColor.DarkGray);
 
 			return builder.ToString();
@@ -780,7 +825,7 @@ namespace ClipboardRtfToHtml
 			int spaces = 0;
 			for (int i = 0; i < start; i++)
 			{
-				if (html[i] == Space)
+				if (html[i] == NbSpace)
 				{
 					spaces++;
 				}
@@ -790,7 +835,7 @@ namespace ClipboardRtfToHtml
 			int end = html.IndexOf("<!--EndFragment-->");
 			for (int i = start + 20; i < end; i++)
 			{
-				if (html[i] == Space)
+				if (html[i] == NbSpace)
 				{
 					spaces++;
 				}
